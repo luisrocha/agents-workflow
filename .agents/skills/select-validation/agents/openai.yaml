@@ -1,0 +1,4 @@
+interface:
+  display_name: "Select Validation"
+  short_description: "Choose checks appropriate to change risk"
+  default_prompt: "Use $select-validation to choose the appropriate checks for this task and workflow stage."

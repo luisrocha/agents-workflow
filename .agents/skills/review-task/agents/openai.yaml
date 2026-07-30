@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Task"
+  short_description: "Submit manual approval or task feedback"
+  default_prompt: "Use $review-task to approve TASK-NNN or submit requested changes."

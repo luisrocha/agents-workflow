@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Task Cycle"
+  short_description: "Create and maintain project agent context"
+  default_prompt: "Use $manage-task-cycle to create, verify, or close project agent context."

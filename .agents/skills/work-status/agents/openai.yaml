@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work Status"
+  short_description: "Summarize .agent-context state and pending gates"
+  default_prompt: "Use $work-status to report the current .agent-context state and next action."

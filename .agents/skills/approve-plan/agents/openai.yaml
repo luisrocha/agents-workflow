@@ -1,0 +1,4 @@
+interface:
+  display_name: "Approve Plan"
+  short_description: "Approve an exact active plan revision"
+  default_prompt: "Use $approve-plan to approve PLAN-NNN revision N."

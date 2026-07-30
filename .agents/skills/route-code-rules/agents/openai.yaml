@@ -1,0 +1,4 @@
+interface:
+  display_name: "Route Code Rules"
+  short_description: "Map changed paths to applicable project rules"
+  default_prompt: "Use $route-code-rules to build or verify the rule manifest for these paths."

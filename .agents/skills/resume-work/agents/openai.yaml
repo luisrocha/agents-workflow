@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resume Work"
+  short_description: "Continue from persisted .agent-context state"
+  default_prompt: "Use $resume-work to continue from persisted .agent-context state."

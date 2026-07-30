@@ -1,0 +1,4 @@
+interface:
+  display_name: "Start Work"
+  short_description: "Begin planning from PROJECT_BRIEF.md or a goal"
+  default_prompt: "Use $start-work to begin planning from PROJECT_BRIEF.md."
