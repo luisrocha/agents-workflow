@@ -16,8 +16,10 @@ The manager coordinates the workflow but never touches the project:
 - starts the appropriate agent;
 - relays questions, findings, and user feedback;
 - enforces plan sign-off, review, validation, and manual-review gates;
-- reconstructs state from orchestration documents;
-- ends its own context after each task cycle.
+- reads only the active pointer and current packet at startup, then delegates
+  deeper state interpretation to the planner;
+- retains the cycle's role contexts through all iterations, then ends them
+  after closeout.
 
 Definition: `subagents/manager.md`
 
@@ -73,21 +75,33 @@ Skills keep repeated procedures out of role context and load only when needed:
 
 | Skill | Purpose |
 | --- | --- |
-| [`start-work`](skills/start-work/SKILL.md) | Start planning a new goal |
-| [`resume-work`](skills/resume-work/SKILL.md) | Continue entirely from persisted state |
-| [`work-status`](skills/work-status/SKILL.md) | Report state without advancing it |
-| [`approve-plan`](skills/approve-plan/SKILL.md) | Approve one exact plan revision |
-| [`review-task`](skills/review-task/SKILL.md) | Submit manual approval or requested changes |
+| [`start-work`](.agents/skills/start-work/SKILL.md) | Start planning a new goal |
+| [`resume-work`](.agents/skills/resume-work/SKILL.md) | Continue entirely from persisted state |
+| [`work-status`](.agents/skills/work-status/SKILL.md) | Report state without advancing it |
+| [`approve-plan`](.agents/skills/approve-plan/SKILL.md) | Approve the latest active plan revision, with optional explicit identifiers |
+| [`review-task`](.agents/skills/review-task/SKILL.md) | Submit manual approval or changes for the current task, with an optional task ID |
 
 ### Internal procedures
 
 | Skill | Roles | Purpose |
 | --- | --- | --- |
-| [`manage-task-cycle`](skills/manage-task-cycle/SKILL.md) | Planner | Initialize, verify, resume, and close cycle state |
-| [`select-validation`](skills/select-validation/SKILL.md) | Planner, developer, reviewer | Discover and select stage-appropriate checks |
-| [`route-code-rules`](skills/route-code-rules/SKILL.md) | Planner, reviewer | Build and verify rule manifests from paths |
+| [`manage-task-cycle`](.agents/skills/manage-task-cycle/SKILL.md) | Planner | Initialize, verify, resume, and close cycle state |
+| [`select-validation`](.agents/skills/select-validation/SKILL.md) | Planner, developer, reviewer | Discover and select stage-appropriate checks |
+| [`route-code-rules`](.agents/skills/route-code-rules/SKILL.md) | Planner, reviewer | Build and verify rule manifests from paths |
 
 The manager delegates skill use but never executes these procedures itself.
+
+### Responsibility boundaries
+
+- **Communication:** the planner prepares questions and plans; only the manager
+  presents them to the user.
+- **Validation:** the developer owns developer-loop and handoff checks; the
+  reviewer owns reviewer checks and the cycle gate. Commands repeat only when
+  independent execution is explicitly justified.
+- **Rule routing:** the planner owns the expected manifest; the reviewer checks
+  it against actual changed paths; the developer only reports new paths.
+- **State reads:** the manager reads `ACTIVE.md` and `CURRENT.md` for routing;
+  the planner owns deeper plan, technology, decision, and history reads.
 
 ## Directory structure
 
@@ -153,7 +167,8 @@ it, and it does not become part of the live context.
 
 ### Context initialization
 
-When `.agent-context/` does not exist, the manager asks a fresh planner to use
+When `.agent-context/` does not exist, the manager asks the upcoming cycle's
+planner to use
 `manage-task-cycle` to create it from `.agents/templates/context/`. Templates
 are fixed framework files: the planner copies them but never edits them in
 place. Initialization refuses to overwrite an existing context.
@@ -241,7 +256,9 @@ Each approved task produces:
 .agent-context/history/cycles/PLAN-NNN/TASK-NNN.md
 ```
 
-The record summarizes changes, validation, assumptions, decisions, reviewer
+The record begins with the same short, plain-language summary shown during
+manual review, so it is understandable without reading implementation detail.
+It then records changes, validation, assumptions, decisions, reviewer
 conclusions, manual approval, and the next task. Its milestone cycle index gets
 one compact row.
 
@@ -272,14 +289,14 @@ Agents open individual task records only when explicitly relevant.
 
 ```mermaid
 flowchart TD
-    M[Fresh manager reconstructs state]
+    M[Manager creates one roster for the cycle]
 
     subgraph Planning
-        P[Fresh planner drafts or updates plan]
+        P[Cycle planner drafts or updates plan]
         Q{Technical uncertainty?}
         CQ[Manager asks user for clarification]
         PS{User signs off plan?}
-        I[Planner initializes .agent-context/CURRENT.md<br/>and ends context]
+        I[Planner initializes .agent-context/CURRENT.md<br/>and remains available]
         P --> Q
         Q -- Yes --> CQ --> P
         Q -- No --> PS
@@ -288,8 +305,8 @@ flowchart TD
     end
 
     subgraph Implementation
-        D[Fresh developer implements task<br/>and records evidence]
-        R[Fresh reviewer inspects diff<br/>and runs appropriate checks]
+        D[Cycle developer implements task<br/>and records evidence]
+        R[Cycle reviewer inspects diff<br/>and runs appropriate checks]
         V{Reviewer verdict}
         T{Uncertain technical<br/>or plan change?}
         A[Planner records proposal]
@@ -305,10 +322,13 @@ flowchart TD
 
     subgraph Approval_and_closeout[Approval and closeout]
         U{User manual review}
-        F[Fresh planner records feedback]
-        C[Fresh planner archives cycle,<br/>advances plan, and resets .agent-context/CURRENT.md]
+        S{Scope-preserving correction?}
+        F[Same planner prepares amendment]
+        C[Same planner archives cycle,<br/>advances plan, and resets .agent-context/CURRENT.md]
         X[All agent contexts end]
-        U -- Changes requested --> F --> D
+        U -- Changes requested --> S
+        S -- Yes: direct --> D
+        S -- No: amend plan --> F --> A
         U -- Approved --> C --> X
     end
 
@@ -320,8 +340,8 @@ flowchart TD
 
 ### 1. Create or update the roadmap
 
-1. Start the manager with a fresh context.
-2. The manager starts a fresh planner.
+1. Start the manager for the upcoming cycle.
+2. The manager starts that cycle's planner.
 3. The planner inspects the project and drafts outcome-level milestones.
 4. The planner batches all uncertain technical questions.
 5. The manager asks the user and relays the answers.
@@ -351,11 +371,11 @@ After plan approval, the planner:
 4. lists exact relevant cycle and decision record paths;
 5. marks the plan task `in_progress`;
 6. sets the current packet to `development`;
-7. ends its context.
+7. remains available for amendments, feedback, and closeout.
 
 ### 4. Develop
 
-The manager starts a fresh developer. The developer:
+The manager starts the cycle's developer once. The developer:
 
 1. reads `.agent-context/CURRENT.md`;
 2. verifies plan and technology revisions;
@@ -368,7 +388,7 @@ The manager starts a fresh developer. The developer:
 
 ### 5. Review
 
-The manager starts a fresh reviewer. The reviewer:
+The manager starts the cycle's reviewer once. The reviewer:
 
 1. independently inspects the baseline diff;
 2. verifies the rule manifest against actual changed paths;
@@ -379,8 +399,8 @@ The manager starts a fresh reviewer. The reviewer:
    `approved`, `changes_requested`, or `blocked`.
 
 When changes are requested, the same developer and reviewer alternate until
-approval. If their contexts become too large, either can restart from
-`.agent-context/CURRENT.md` and the baseline.
+approval. They receive follow-up tasks in their existing contexts; context
+growth alone never creates a replacement agent.
 
 ### 6. Validate
 
@@ -404,15 +424,33 @@ The manager asks the user to review only after:
 
 - the reviewer approves;
 - acceptance criteria pass;
-- the required cycle gate passes.
+- the required cycle gate passes;
+- the reviewer confirms the planned manual procedure matches the final result.
 
-If the user requests changes, a fresh planner persists the feedback in
-`.agent-context/CURRENT.md`, then the developer-reviewer loop resumes. Only explicit user
-approval completes manual review.
+The request begins with a short, plain-language summary of what the completed
+work now lets the user do. It then includes prerequisites, exact commands or
+numbered actions, expected results, safe cleanup, and anything that must remain
+unchanged. The user should never have to infer what changed or how to exercise
+it.
+
+For a clearly scope-preserving change request, `$review-task` sends the exact
+feedback directly to the developer, bypassing the manager and planner.
+The developer records and implements it, then hands it directly to the
+reviewer. The reviewer must inspect the post-request changes and revalidate the
+final task diff before the manager asks for manual review again.
+
+Feedback that changes or may change scope, acceptance criteria, technology,
+rules, dependencies, migrations, public contracts, authorization, or security
+uses the normal manager-planner amendment path and requires sign-off. Only
+explicit user approval completes manual review.
+
+For `$review-task approved`, the skill resolves the task from `CURRENT.md` and
+validates its reviewer verdict and gate directly. A supplied `TASK-NNN` must
+match. It skips the manager and does not rerun project validation.
 
 ### 8. Close the task
 
-A fresh planner:
+The cycle's existing planner, using a bounded closeout document set:
 
 1. writes `.agent-context/history/cycles/PLAN-NNN/TASK-NNN.md`;
 2. updates that milestone's cycle index;
@@ -486,15 +524,20 @@ For a short idea, `$start-work <goal>` remains available without editing
 
 ## Resuming the workflow
 
-Start a fresh manager and ask it to resume:
+Ask the active cycle's existing manager to resume:
 
 ```text
 $resume-work
 ```
 
-The manager reads the roadmap, active pointer, referenced milestone plan,
-technology revision, current packet, and root history index. Exact history
-records are loaded only when `.agent-context/CURRENT.md` references them.
+The manager reads only the active pointer and current packet for routing. It
+opens the referenced plan only for sign-off and the roadmap only for project or
+milestone transitions. The planner performs deeper plan, technology, decision,
+and history reconstruction.
+
+Resume within the same orchestration thread while a cycle is active so its
+role contexts remain reachable. New conversations are safe between closed
+cycles; replacing an unavailable active-cycle role requires user approval.
 
 ## Recovery rules
 
@@ -504,8 +547,8 @@ records are loaded only when `.agent-context/CURRENT.md` references them.
 - If `.agent-context/CURRENT.md` is active, resume its recorded stage and
   baseline.
 - If revisions do not match, stop and ask the planner to reconcile them.
-- If an agent context is lost, restart that role from
-  `.agent-context/CURRENT.md`.
+- If an active cycle's agent context is unavailable, pause and ask the user
+  before creating a replacement. Never replace it automatically.
 - If a task record exists but the task remains in the plan, ask the planner to
   finish closeout rather than rerunning the task.
 - Never reconstruct decisions from chat when an immutable decision record
@@ -513,6 +556,8 @@ records are loaded only when `.agent-context/CURRENT.md` references them.
 
 ## Invariants
 
+- User-facing chat is limited to brief phase starts, phase finishes, and input
+  requests; detailed progress and evidence stay in `.agent-context/`.
 - Manager never touches project files.
 - Planner never implements project changes.
 - Developer never changes plans or history.
@@ -520,6 +565,8 @@ records are loaded only when `.agent-context/CURRENT.md` references them.
 - No development starts without plan sign-off.
 - No task closes without reviewer approval and user manual approval.
 - Only one task cycle is active.
+- Each role has at most one agent instance per active cycle; all corrections
+  use follow-up tasks to those same instances.
 - Active documents remain bounded to current work.
 - Historical records are immutable and loaded by exact path.
 - Framework files under `.agents/` are never modified during project work.

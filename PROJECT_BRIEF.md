@@ -7,15 +7,18 @@ planner will ask for clarification rather than guess.
 
 ## Goal
 
-_What should become possible, and what outcome would make this work useful?_
+Develop an app that everyday fetches a MTG card list from a csv on google drive, and displays the cards in a list that can be ordered by average price and/or meta share on the most popular formats (standard, modern, pauper, commander, etc).
 
 ## People and use cases
 
-_Who is this for, and what should they be able to do?_
+This is a single user app, no authentication needed.
 
 ## Important behavior
 
-_Describe the main workflows, must-have capabilities, and important edge cases._
+- import the csv from google drive every day
+- sync the local data with the imported data, adding new cards and removing cards that are no longer in the csv
+- display the cards using a table view, by the card image, name, average price and meta share on the most selected format
+- user can select/filter the formats, and order the list by average price or meta share
 
 ## Constraints
 

@@ -6,12 +6,13 @@ description: Create .agent-context from fixed templates, then initialize, verify
 # Manage task cycle
 
 Preserve one consistent source of truth under `.agent-context/` while moving a
-task through the orchestration workflow. Only the planner may create or edit
-these project context documents.
+task through the orchestration workflow. `$start-work` may perform the initial
+template copy before starting the manager; after bootstrap, only the planner
+may edit these project context documents.
 
 ## Create project context
 
-When `.agent-context/` is absent, run:
+When `.agent-context/` is absent, `$start-work` or the planner runs:
 
 ```sh
 .agents/skills/manage-task-cycle/scripts/init-context.sh .
@@ -31,6 +32,13 @@ Run:
 Stop on any reported mismatch. Reconcile state from the approved plan and
 immutable records; never reconstruct it from chat.
 
+For an exact manual-review command, validate the task, stage, reviewer verdict,
+and gate in the same deterministic check:
+
+```sh
+.agents/skills/manage-task-cycle/scripts/check-state.sh . TASK-NNN manual_review
+```
+
 ## Initialize a cycle
 
 1. Confirm the plan has explicit user approval and the selected task is
@@ -46,7 +54,8 @@ immutable records; never reconstruct it from chat.
 ## Resume a cycle
 
 1. Run the state check.
-2. Use `CURRENT.md` status to choose the next role.
+2. Use `CURRENT.md` status to choose which existing cycle role receives the
+   next follow-up task; never spawn a duplicate role.
 3. Load only exact rule and history paths listed in the packet.
 4. Stop for planner reconciliation when revisions or identifiers disagree.
 
@@ -54,12 +63,14 @@ immutable records; never reconstruct it from chat.
 
 1. Require reviewer approval, a passing required cycle gate, and explicit user
    manual approval.
-2. Create the immutable task record from `CURRENT.md`.
+2. Create the immutable task record from `CURRENT.md`. Begin it with a
+   `## Summary` section containing the same one- or two-sentence plain-language
+   summary used for manual review.
 3. Add one compact row to the milestone cycle index.
 4. Remove the completed task from the active plan and expose the next task.
 5. Reset `CURRENT.md` to `idle`; do not retain completed evidence there.
 6. Update milestone state when its completion criteria are satisfied.
-7. Run the state check before ending every agent context.
+7. Run the state check before ending the cycle's retained agent contexts.
 
 Do not change technology or plan revisions through this skill. Use the
 approved-decision workflow for amendments.

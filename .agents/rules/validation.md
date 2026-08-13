@@ -54,7 +54,23 @@ The reviewer records whether the cycle gate is `targeted` or `full`, why that
 scope is sufficient, and all results. Manual review cannot start while a
 required gate is failed, skipped without approval, or still running.
 
-## 5. Milestone and release gate
+## 5. Manual verification
+
+Purpose: let the user confirm the delivered behavior without reconstructing the
+implementation or guessing commands.
+
+The task contract must record:
+
+- required setup and safe test data;
+- exact commands or numbered actions;
+- observable expected results;
+- cleanup or rollback steps;
+- files, data, or environments that must remain unchanged.
+
+The reviewer confirms these instructions still match the final implementation.
+Missing, unsafe, vague, or stale instructions block manual review.
+
+## 6. Milestone and release gate
 
 Purpose: validate accumulated integration risk.
 

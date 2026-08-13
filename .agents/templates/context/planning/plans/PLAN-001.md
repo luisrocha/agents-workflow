@@ -48,7 +48,8 @@ Batch related questions into one review:
 - **Reviewer checks:**
   - `_Independent and affected-area validation._`
 - **Cycle gate:** _targeted or full, with rationale and commands._
-- **Manual checks:** _User-visible or operational checks._
+- **Manual checks:** _Prerequisites; exact commands/actions; expected results;
+  cleanup; protected files/data._
 - **Applicable rules:**
   - `.agents/rules/principles.md`
   - `.agents/rules/validation.md`

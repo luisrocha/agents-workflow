@@ -10,7 +10,10 @@ task's actual behavior and trust boundaries.
 
 ## Route paths
 
-Run with expected paths during planning and actual changed paths during review:
+The planner owns the approved manifest: run with expected paths during planning
+and write the result into the task contract. The reviewer owns verification:
+run with actual changed paths, compare the result with the approved manifest,
+and record omissions as findings without replacing or editing the contract.
 
 ```sh
 .agents/skills/route-code-rules/scripts/route.sh PATH...
@@ -29,6 +32,5 @@ The script prints candidates in manifest form. It never edits
 4. Remove only candidates proven irrelevant.
 5. Record exact rule paths in the approved task contract.
 
-The developer reports newly affected paths instead of silently changing the
-manifest. The reviewer reruns routing on the actual diff and records omissions
-as findings.
+The developer only reports newly affected paths; it never routes or edits the
+manifest.

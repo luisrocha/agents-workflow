@@ -5,6 +5,8 @@ description: Report the current orchestration milestone, task, revisions, gates,
 
 # Work status
 
+Follow `.agents/COMMUNICATION.md`; return one concise requested status report.
+
 If `.agent-context/CURRENT.md` does not exist, report that project context has
 not been initialized and direct the user to `$start-work`. Do not initialize it.
 

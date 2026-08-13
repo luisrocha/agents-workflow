@@ -6,8 +6,10 @@ and do not copy this evidence into the active plan.
 ## Ownership
 
 - **Planner:** cycle identity, approved task contract, manual review, closeout.
-- **Developer:** developer evidence only.
-- **Reviewer:** reviewer evidence only.
+- **Developer:** developer evidence; for a direct correction, its exact feedback
+  and transition from `manual_review` through `development` to `review`.
+- **Reviewer:** reviewer evidence; after a direct correction, transition back to
+  `manual_review` on approval.
 - **Manager:** read-only; relays user and agent messages.
 
 ## Cycle identity
@@ -30,7 +32,8 @@ and do not copy this evidence into the active plan.
 - **Developer checks:** —
 - **Reviewer checks:** —
 - **Required cycle gate:** —
-- **Manual checks:** —
+- **Manual checks:** _Prerequisites; exact commands/actions; expected results;
+  cleanup; protected files/data._
 - **Applicable rules:** —
 - **Technology keys:** —
 - **Relevant cycle records:** —
@@ -39,6 +42,7 @@ and do not copy this evidence into the active plan.
 ## Developer evidence
 
 - **Status:** not_started
+- **Direct user feedback:** —
 - **Files changed:** —
 - **Implementation summary:** —
 - **Developer-loop checks:** —
@@ -68,8 +72,9 @@ and do not copy this evidence into the active plan.
 - **User feedback:** —
 - **Approved at:** —
 
-When changes are requested, the planner records the feedback and returns cycle
-status to `development`. Only explicit user approval sets it to `approved`.
+For direct scope-preserving corrections, the developer records the feedback and
+returns the cycle to `development`; plan-affecting feedback goes through the
+planner. Only explicit user approval sets the cycle to `approved`.
 
 ## Closeout
 

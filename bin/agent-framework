@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  agent-framework init
+  agent-framework add-rules RULESET...
+
+Environment:
+  AGENT_FRAMEWORK_REPO    Git repository URL or local path (required)
+  AGENT_FRAMEWORK_REF     Optional branch or tag
+USAGE
+}
+
+fail() {
+  printf 'ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+command_name="${1:-}"
+[ -n "$command_name" ] || { usage >&2; exit 1; }
+shift
+
+case "$command_name" in
+  init|add-rules) ;;
+  -h|--help|help) usage; exit 0 ;;
+  *) usage >&2; fail "unknown command: $command_name" ;;
+esac
+
+repository="${AGENT_FRAMEWORK_REPO:-}"
+reference="${AGENT_FRAMEWORK_REF:-}"
+target="$PWD"
+
+[ -n "$repository" ] || fail 'AGENT_FRAMEWORK_REPO is required'
+
+checkout_parent="$(mktemp -d)"
+stage_parent="$(mktemp -d "$target/.agent-framework-install.XXXXXX")"
+trap 'rm -rf -- "$checkout_parent" "$stage_parent"' EXIT
+
+clone_args=(clone --quiet --depth 1)
+[ -z "$reference" ] || clone_args+=(--branch "$reference")
+clone_args+=(-- "$repository" "$checkout_parent/repository")
+git "${clone_args[@]}"
+
+checkout="$checkout_parent/repository"
+if [ -d "$checkout/.agents/rules" ]; then
+  source_dir="$checkout/.agents"
+elif [ -d "$checkout/rules" ] && [ -d "$checkout/subagents" ]; then
+  source_dir="$checkout"
+else
+  fail 'repository does not contain a framework at .agents/ or its root'
+fi
+
+shopt -s dotglob nullglob
+
+case "$command_name" in
+  init)
+    [ "$#" -eq 0 ] || fail 'init accepts no arguments'
+    [ ! -e "$target/.agents" ] || fail ".agents already exists in $target"
+
+    stage="$stage_parent/.agents"
+    mkdir -p "$stage/rules"
+
+    for entry in "$source_dir"/*; do
+      case "$(basename "$entry")" in
+        .git|rules) continue ;;
+      esac
+      cp -R -- "$entry" "$stage/"
+    done
+
+    for entry in "$source_dir/rules"/*; do
+      [ -d "$entry" ] || cp -R -- "$entry" "$stage/rules/"
+    done
+
+    mv -- "$stage" "$target/.agents"
+    printf 'Installed framework in %s/.agents without optional rule folders.\n' "$target"
+    ;;
+
+  add-rules)
+    [ "$#" -gt 0 ] || fail 'add-rules requires at least one rule folder'
+    [ -d "$target/.agents/rules" ] || fail "initialize .agents in $target first"
+
+    for ruleset in "$@"; do
+      [[ "$ruleset" =~ ^[a-z0-9][a-z0-9-]*$ ]] || fail "invalid rule folder: $ruleset"
+      [ -d "$source_dir/rules/$ruleset" ] || fail "unknown rule folder: $ruleset"
+      [ ! -e "$target/.agents/rules/$ruleset" ] || fail "rule folder already exists: $ruleset"
+      [ ! -e "$stage_parent/$ruleset" ] || fail "duplicate rule folder: $ruleset"
+      cp -R -- "$source_dir/rules/$ruleset" "$stage_parent/$ruleset"
+    done
+
+    for ruleset in "$@"; do
+      mv -- "$stage_parent/$ruleset" "$target/.agents/rules/$ruleset"
+      printf 'Installed rule folder: %s\n' "$ruleset"
+    done
+    ;;
+
+esac

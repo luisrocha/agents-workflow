@@ -24,12 +24,15 @@ reported files before recording exact commands in the task contract.
 Read `.agents/rules/validation.md`, then:
 
 - **Planner:** define separate developer-loop, handoff, reviewer, cycle-gate,
-  and manual checks.
+  and manual checks. Avoid assigning the same command to multiple stages unless
+  independent execution is necessary; record that reason in the contract.
 - **Developer loop:** run changed examples and their nearest affected tests.
 - **Developer handoff:** add direct collaborators, public boundaries, and
   changed-file analysis.
-- **Reviewer:** independently rerun contract checks and add coverage based on
-  actual paths, callers, failure modes, and risk.
+- **Reviewer:** run reviewer-stage contract checks and add coverage based on
+  actual paths, callers, failure modes, and risk. Repeat a developer command
+  only when the contract, acceptance-critical independence, or a finding
+  requires it; record why.
 - **Cycle gate:** use targeted validation unless a documented full-gate trigger
   applies.
 - **Milestone or release:** run the complete configured quality gate.

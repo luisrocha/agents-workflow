@@ -2,6 +2,8 @@
 set -eu
 
 project_root=${1:-.}
+expected_task=${2:-}
+expected_status=${3:-}
 context_dir="$project_root/.agent-context"
 errors=0
 
@@ -62,6 +64,7 @@ technology_revision=$(field "$technology" "Revision")
   fail "technology profile revision $technology_revision does not match ACTIVE.md revision $active_technology_revision"
 
 current_status=$(field "$current" "Status")
+current_task=$(field "$current" "Task")
 current_plan=$(field "$current" "Plan")
 current_plan_path=$(field "$current" "Plan path" | tr -d '`')
 current_technology_revision=$(field "$current" "Technology profile revision")
@@ -70,6 +73,26 @@ case "$current_status" in
   idle|development|review|manual_review|approved|blocked) ;;
   *) fail "unsupported CURRENT.md status: ${current_status:-missing}" ;;
 esac
+
+if [ -n "$expected_task" ] && [ "$current_task" != "$expected_task" ]; then
+  fail "CURRENT.md task $current_task does not match expected task $expected_task"
+fi
+
+if [ -n "$expected_status" ] && [ "$current_status" != "$expected_status" ]; then
+  fail "CURRENT.md status $current_status does not match expected status $expected_status"
+fi
+
+if [ "$expected_status" = "manual_review" ] &&
+  [ "$current_status" = "manual_review" ]; then
+  reviewer_verdict=$(field "$current" "Verdict")
+  gate_status=$(field "$current" "Gate status")
+  [ "$reviewer_verdict" = "approved" ] ||
+    fail "manual review requires reviewer verdict approved, found ${reviewer_verdict:-missing}"
+  case "$gate_status" in
+    passed*) ;;
+    *) fail "manual review requires a passing gate, found ${gate_status:-missing}" ;;
+  esac
+fi
 
 [ "$current_plan" = "$active_milestone revision $active_revision" ] ||
   fail "CURRENT.md plan identity does not match ACTIVE.md"
